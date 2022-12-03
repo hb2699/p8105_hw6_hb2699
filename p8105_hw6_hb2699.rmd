@@ -65,3 +65,23 @@ baltimore_logistic %>%
 
 * In Baltimore, MD, controlling for all other variables, the homicides whose victim is male are significantly less like to be resolved than those whose victim is female.
 
+```{r, warning=FALSE, message=FALSE}
+#  Extract the adjusted odds ratio (and CI) for solving homicides comparing male victims to female victims from all the cities.
+allcities_logistic = homicide_df %>% 
+  nest(data = -city_state) %>% 
+  mutate(
+    models = map(data, ~glm(resolved ~ victim_age + victim_race + victim_sex, data = ., family = binomial(link = "logit"))),
+    results = map(models, ~broom::tidy(.x, conf.int = T))) %>% 
+  select(city_state, results) %>% 
+  unnest(results) %>% 
+  mutate(
+    OR = exp(estimate),
+    CI_lower = exp(conf.low),
+    CI_upper = exp(conf.high),
+    p_val = rstatix::p_format(p.value, digits = 2)
+  ) %>% 
+  filter(term == "victim_sexMale") %>% 
+  select(city_state, OR, CI_lower,CI_upper, p_val) 
+allcities_logistic %>% 
+  knitr::kable(digits = 3, align = "llccc", col.names = c("City", "Estimated adjusted OR", "CI lower bound", "CI upper bound", "p-value"))
+```
