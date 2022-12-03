@@ -8,6 +8,8 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(viridis)
+library(purrr)
+library(modelr)
 
 knitr::opts_chunk$set(
 	echo = TRUE,
@@ -127,3 +129,51 @@ birthweight_tidy =
 sum(is.na(birthweight_tidy))
 ```
 
+```{r, message=FALSE}
+#Propose a Regression Model for Birthweight.First, I use stepwise method to select variables.
+mult_fit = lm(bwt ~ ., data=birthweight_tidy)
+step(mult_fit, direction="both")
+```
+
+After stepwise selection, I get `babysex`, `bhead`, `blength`, `delwt`, `fincome`, `gaweeks`, `mheight`, `mrace`, `parity`, `ppwt` and `smoken` left in the model.
+
+```{r}
+mult_fit_1 = lm(bwt ~  babysex + bhead + blength + delwt + fincome + gaweeks + mheight + mrace + parity + ppwt + smoken,
+              data=birthweight_tidy)
+summary(mult_fit_1)
+```
+
+Second, I would like to explore the collinearity among these selected continuous variables.
+
+```{r, message=FALSE, warning=FALSE}
+fit_var = birthweight_tidy %>%
+  select(bhead, blength, delwt, fincome, gaweeks, mheight, parity, ppwt, smoken)
+# Correlation matrix for all selected continuous variables
+cor(fit_var)
+# Scatter plot matrix for all selected continuous variables
+pairs(fit_var)
+```
+
+From the plot above, we can observe that the a potential collinearity might exsit between `delwt` and `ppwt`, as well as `bhead` and `blength`. Therefore, I plan to drop `ppwt` and `blength` whose p-values are relatively larger in my model.
+
+```{r}
+# my model
+mult_fit_2 = lm(bwt ~  babysex + bhead + delwt + fincome + gaweeks + mheight + mrace + parity + smoken,
+              data=birthweight_tidy)
+summary(mult_fit_2)
+```
+
+Next, I will show a plot of model residuals against fitted values.
+
+```{r, message=FALSE}
+birthweight_tidy %>%
+  add_residuals(mult_fit_2) %>%
+  add_predictions(mult_fit_2) %>%
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Plot of the Model Residuals Against Fitted Values",
+       x = "Fitted Values", y = "Residuals") 
+```
+
+From the plot of residuals against fitted values above, we can observe a cluster around 0, and some extreme values when prediction is below 1000. The constant variance assumption is generally satisfied.
