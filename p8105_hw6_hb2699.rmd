@@ -95,3 +95,35 @@ allcities_logistic %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
   labs(x = "City", y = "Estimated OR with CI")
 ```
+
+## Problem 3
+```{r, message=FALSE}
+birthweight = read_csv("./birthweight.csv")
+```
+
+### Data Preprocessing
+
+```{r}
+birthweight_tidy =
+  birthweight %>% 
+  janitor::clean_names() %>%
+  mutate(across(.cols = c(babysex, frace, malform, mrace), as.factor)) %>%
+  mutate(babysex = case_when(babysex == 1 ~"male", babysex == 2 ~"female"),
+         malform = case_when(malform == 0 ~"absent", malform == 1 ~ "present"),
+         frace = recode(frace, 
+                        "1" = "White", 
+                        "2" = "Black", 
+                        "3" = "Asian", 
+                        "4" = "Puerto Rican", 
+                        "8" = "Other", 
+                        "9" = "Unknown"),
+         mrace = recode(mrace, 
+                        "1" = "White", 
+                        "2" = "Black", 
+                        "3" = "Asian", 
+                        "4" = "Puerto Rican", 
+                        "8" = "Other"))
+# check missing values
+sum(is.na(birthweight_tidy))
+```
+
